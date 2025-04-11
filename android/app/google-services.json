@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "284119484102",
+    "project_id": "cimaparkv2",
+    "storage_bucket": "cimaparkv2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:284119484102:android:9fb7172648040b902af9c7",
+        "android_client_info": {
+          "package_name": "com.example.cimaparkv2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBFOYFvtFKLVCdu1T5VJDurWxfnGZS4veI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
