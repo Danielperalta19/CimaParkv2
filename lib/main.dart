@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(), // Ruta para Login
         '/registro': (context) => const RegistroPage(), // Ruta para Registro
         '/alumno': (context) => const AlumnoHome(), // Ruta para Alumno
-        '/admin': (context) => const AdminHome(), // Ruta para admin
+        '/admin': (context) => const AdminHome(), // Ruta para admincl
       },
     );
   }
