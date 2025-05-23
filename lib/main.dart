@@ -1,14 +1,14 @@
 import 'package:cimaparkv2/firebase_options.dart';
-import 'package:cimaparkv2/formulario_usuario.dart';
+import 'package:cimaparkv2/home.dart';
+import 'package:cimaparkv2/seleccion_estacionamiento.dart';
+import 'package:cimaparkv2/widgets/perfil_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:cimaparkv2/usuarios_tab.dart';
-import 'package:cimaparkv2/formulario_usuario.dart';
 import 'package:cimaparkv2/admin_home.dart';
-import 'package:cimaparkv2/alumno_home.dart';
+import 'package:cimaparkv2/estacionamiento_home.dart';
 import 'package:cimaparkv2/login_page.dart';
 import 'package:cimaparkv2/registro_page.dart';
-import 'package:cimaparkv2/login_page.dart';
+import 'package:cimaparkv2/registro_vehiculos.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,15 +23,25 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Cimapark',
+      title: 'CimaPark',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      initialRoute: '/login', // Página inicial, comienza en el login
+      initialRoute: '/home', // Página inicial
       routes: {
+        '/home': (context) => const HomeCimapark(), // Ruta para home
         '/login': (context) => const LoginPage(), // Ruta para Login
-        '/registro': (context) => const RegistroPage(), // Ruta para Registro
-        '/alumno': (context) => const AlumnoHome(), // Ruta para Alumno
+        '/registro': (context) => const RegistroPage(), //Ruta para registro
+        '/perfil': (context) => const PerfilPage(),
+        '/vehiculos':
+            (context) =>
+                const RegistroVehiculoPage(), // Ruta para Registro vehiculo
+        '/estacionamiento':
+            (context) =>
+                const MapaEstacionamientosPage(), // Ruta para Estacionamientos
+        '/detalle_estacionamiento':
+            (context) =>
+                const DetalleEstacionamientoPage(), //Ruta para marcar estacionamiento
         '/admin': (context) => const AdminHome(), // Ruta para admincl
       },
     );
