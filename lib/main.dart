@@ -1,7 +1,6 @@
 import 'package:cimaparkv2/firebase_options.dart';
 import 'package:cimaparkv2/home.dart';
 import 'package:cimaparkv2/seleccion_estacionamiento.dart';
-import 'package:cimaparkv2/widgets/perfil_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:cimaparkv2/admin_home.dart';
@@ -9,6 +8,7 @@ import 'package:cimaparkv2/estacionamiento_home.dart';
 import 'package:cimaparkv2/login_page.dart';
 import 'package:cimaparkv2/registro_page.dart';
 import 'package:cimaparkv2/registro_vehiculos.dart';
+import 'package:cimaparkv2/perfil_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

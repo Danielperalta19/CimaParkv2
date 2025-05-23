@@ -81,7 +81,41 @@ class _RegistroPageState extends State<RegistroPage> {
             'tipo_ref': alumnoRef,
           });
 
-      Navigator.pushReplacementNamed(context, '/perfil');
+      await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Cuenta creada',
+              style: TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: const Text(
+              'Tu cuenta ha sido registrada exitosamente.',
+              style: TextStyle(color: Colors.black87),
+            ),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.green),
+                onPressed: () {
+                  Navigator.of(context).pop(); // Cierra el diálogo
+                  Navigator.pushReplacementNamed(context, '/perfil');
+                },
+                child: const Text(
+                  'Continuar',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
+      );
     } on FirebaseAuthException catch (e) {
       String mensajeError;
       switch (e.code) {
@@ -134,7 +168,7 @@ class _RegistroPageState extends State<RegistroPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Center(child: Image.asset('assets/logo.png', height: 125)),
+                    Center(child: Image.asset('assets/logo.png', height: 200)),
                     const SizedBox(height: 20),
 
                     _buildLabeledTextField('Correo', _emailController),

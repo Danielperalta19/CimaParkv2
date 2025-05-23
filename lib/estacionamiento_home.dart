@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cimaparkv2/widgets/nombre_usuario_widget.dart';
+import 'package:cimaparkv2/perfil_page.dart';
 
 class MapaEstacionamientosPage extends StatelessWidget {
   const MapaEstacionamientosPage({super.key});
@@ -104,11 +105,12 @@ class MapaEstacionamientosPage extends StatelessWidget {
                               height: 500,
                             ),
                           ),
-                          FutureBuilder<QuerySnapshot>(
-                            future:
+                          StreamBuilder<QuerySnapshot>(
+                            stream:
                                 FirebaseFirestore.instance
                                     .collection('estacionamientos')
-                                    .get(),
+                                    .snapshots(),
+
                             builder: (context, snapshot) {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
@@ -196,6 +198,21 @@ class MapaEstacionamientosPage extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            Positioned(
+              bottom: 20,
+              right: 20,
+              child: FloatingActionButton(
+                backgroundColor: Colors.green[800],
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PerfilPage()),
+                  );
+                },
+                child: const Icon(Icons.settings, color: Colors.white),
+                tooltip: 'Ir a Perfil',
               ),
             ),
           ],

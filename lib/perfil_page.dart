@@ -36,7 +36,6 @@ class _PerfilPageState extends State<PerfilPage> {
         if (usuarioData != null) {
           correo = usuarioData['correo'] ?? '';
           password = usuarioData['password'] ?? '';
-          vehiculo = usuarioData['vehiculo'] ?? '';
           final refAlumno = usuarioData['tipo_ref'] as DocumentReference;
 
           final alumnoDoc = await refAlumno.get();
@@ -45,9 +44,26 @@ class _PerfilPageState extends State<PerfilPage> {
           if (alumnoData != null) {
             nombre = alumnoData['nombre'] ?? '';
             matricula = alumnoData['matricula'] ?? '';
+
+            // ✅ Leer la referencia al vehículo desde el alumno
+            if (alumnoData.containsKey('vehiculo_ref')) {
+              final vehiculoRef =
+                  alumnoData['vehiculo_ref'] as DocumentReference;
+              final vehiculoDoc = await vehiculoRef.get();
+              final vehiculoData = vehiculoDoc.data() as Map<String, dynamic>?;
+
+              if (vehiculoData != null) {
+                // Puedes concatenar marca + modelo o mostrar solo placas, etc.
+                vehiculo =
+                    '${vehiculoData['marca']} ${vehiculoData['modelo']} - ${vehiculoData['placas']}';
+
+                print('Vehículo recuperado: $vehiculo');
+              }
+            }
           }
 
-          if (vehiculo.isEmpty) {
+          // Mostrar alerta si no hay vehículo registrado
+          if (vehiculo.trim().isEmpty) {
             Future.delayed(Duration.zero, _mostrarAlertaVehiculo);
           }
 
@@ -114,7 +130,7 @@ class _PerfilPageState extends State<PerfilPage> {
           Positioned(
             top: 20,
             left: 20,
-            child: Image.asset('assets/logo.png', width: 100, height: 100),
+            child: Image.asset('assets/logo.png', width: 200, height: 200),
           ),
 
           // Contenido principal
@@ -139,10 +155,8 @@ class _PerfilPageState extends State<PerfilPage> {
                     _buildField('Correo', correo),
                     _buildField('Contraseña', '********'),
                     _buildField('Matrícula', matricula),
-                    _buildField(
-                      'Vehículo',
-                      vehiculo.isNotEmpty ? vehiculo : 'Sin registrar',
-                    ),
+                    _buildField('Vehículo', vehiculo),
+
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -155,6 +169,9 @@ class _PerfilPageState extends State<PerfilPage> {
   }
 
   Widget _buildField(String label, String value) {
+    final bool esVehiculo = label == 'Vehículo';
+    final bool mostrarBoton = esVehiculo && value.trim().isEmpty;
+
     return Container(
       width: MediaQuery.of(context).size.width * 0.85,
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -162,7 +179,7 @@ class _PerfilPageState extends State<PerfilPage> {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
         ],
       ),
@@ -178,9 +195,27 @@ class _PerfilPageState extends State<PerfilPage> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 16, color: Colors.black87),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  value.trim().isNotEmpty ? value : 'Sin registrar',
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
+                ),
+              ),
+              if (mostrarBoton)
+                TextButton(
+                  onPressed: () {
+                    // 🔁 Cambia esta ruta según tu app
+                    Navigator.pushNamed(context, '/vehiculos');
+                  },
+                  child: const Text(
+                    'Registrar',
+                    style: TextStyle(color: Colors.blue),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
