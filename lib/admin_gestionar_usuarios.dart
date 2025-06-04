@@ -5,11 +5,160 @@ class GestionarUsuariosPage extends StatelessWidget {
   const GestionarUsuariosPage({super.key});
 
   Future<void> eliminarUsuario(String userId, DocumentReference tipoRef) async {
-    await tipoRef.delete(); // elimina de 'alumnos'
-    await FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(userId)
-        .delete(); // elimina de 'usuarios'
+    try {
+      // Paso 1 y 2: obtener datos del alumno
+      final tipoSnapshot = await tipoRef.get();
+      final tipoData = tipoSnapshot.data() as Map<String, dynamic>? ?? {};
+
+      // Paso 3: obtener referencia al vehículo (si existe)
+      if (tipoData.containsKey('vehiculo_ref') &&
+          tipoData['vehiculo_ref'] is DocumentReference) {
+        final vehiculoRef = tipoData['vehiculo_ref'] as DocumentReference;
+
+        // Paso 4: eliminar el vehículo
+        await vehiculoRef.delete();
+      }
+
+      // Paso 5: eliminar el documento del alumno
+      await tipoRef.delete();
+
+      // Paso 6: eliminar el documento del usuario
+      await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(userId)
+          .delete();
+
+      print('Usuario, alumno y vehículo eliminados exitosamente.');
+    } catch (e) {
+      print('Error al eliminar usuario: $e');
+    }
+  }
+
+  void _mostrarDialogoEditarUsuario(
+    BuildContext context,
+    DocumentSnapshot user,
+  ) async {
+    final correoController = TextEditingController(text: user['correo']);
+    final passwordController = TextEditingController(
+      text: user['password'] ?? '',
+    );
+    String tipoUsuario = user['tipo_usuario'];
+    final tipoRef = user['tipo_ref'] as DocumentReference;
+
+    // Obtenemos los datos del documento referenciado (admin o alumno)
+    final tipoSnapshot = await tipoRef.get();
+    final data = tipoSnapshot.data() as Map<String, dynamic>? ?? {};
+
+    final nombreController = TextEditingController(text: data['nombre'] ?? '');
+    final apellido1Controller = TextEditingController(
+      text: data['primer_apellido'] ?? '',
+    );
+    final apellido2Controller = TextEditingController(
+      text: data['segundo_apellido'] ?? '',
+    );
+    final matriculaController = TextEditingController(
+      text: data['matricula'] ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Editar Usuario'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Datos del usuario"),
+                TextField(
+                  controller: correoController,
+                  decoration: const InputDecoration(labelText: 'Correo'),
+                ),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Contraseña'),
+                ),
+                DropdownButtonFormField<String>(
+                  value: tipoUsuario,
+                  items: const [
+                    DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                    DropdownMenuItem(value: 'alumno', child: Text('Alumno')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      tipoUsuario = value;
+                    }
+                  },
+                  decoration: const InputDecoration(
+                    labelText: 'Tipo de usuario',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text("Datos personales"),
+                TextField(
+                  controller: nombreController,
+                  decoration: const InputDecoration(labelText: 'Nombre'),
+                ),
+                TextField(
+                  controller: apellido1Controller,
+                  decoration: const InputDecoration(
+                    labelText: 'Primer Apellido',
+                  ),
+                ),
+                TextField(
+                  controller: apellido2Controller,
+                  decoration: const InputDecoration(
+                    labelText: 'Segundo Apellido',
+                  ),
+                ),
+                TextField(
+                  controller: matriculaController,
+                  decoration: const InputDecoration(labelText: 'Matrícula'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Actualizar documento en la colección usuarios
+                await FirebaseFirestore.instance
+                    .collection('usuarios')
+                    .doc(user.id)
+                    .update({
+                      'correo': correoController.text.trim(),
+                      'password': passwordController.text.trim(),
+                      'tipo_usuario': tipoUsuario,
+                    });
+
+                // Actualizar documento referenciado (admin o alumno)
+                await tipoRef.update({
+                  'nombre': nombreController.text.trim(),
+                  'primer_apellido': apellido1Controller.text.trim(),
+                  'segundo_apellido': apellido2Controller.text.trim(),
+                  'matricula': matriculaController.text.trim(),
+                });
+
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Usuario actualizado con éxito'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -96,67 +245,92 @@ class GestionarUsuariosPage extends StatelessWidget {
                                       ],
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.delete,
-                                      color: Colors.red,
-                                    ),
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext dialogContext) {
-                                          return AlertDialog(
-                                            title: const Text(
-                                              'Eliminar usuario',
-                                            ),
-                                            content: const Text(
-                                              '¿Estás seguro de que deseas eliminar este usuario?',
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed:
-                                                    () => Navigator.pop(
-                                                      dialogContext,
-                                                    ),
-                                                child: const Text('Cancelar'),
-                                              ),
-                                              ElevatedButton(
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.red,
-                                                ),
-                                                onPressed: () async {
-                                                  final tipoRef =
-                                                      user['tipo_ref']
-                                                          as DocumentReference;
-                                                  await eliminarUsuario(
-                                                    uid,
-                                                    tipoRef,
-                                                  );
-                                                  Navigator.pop(dialogContext);
-
-                                                  // Mostrar snackbar usando el context original
-                                                  ScaffoldMessenger.of(
-                                                    context,
-                                                  ).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text(
-                                                        'Usuario eliminado con éxito',
-                                                      ),
-                                                      backgroundColor:
-                                                          Colors.green,
-                                                      duration: Duration(
-                                                        seconds: 2,
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
-                                                child: const Text('Eliminar'),
-                                              ),
-                                            ],
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.edit,
+                                          color: Colors.blue,
+                                        ),
+                                        onPressed: () {
+                                          _mostrarDialogoEditarUsuario(
+                                            context,
+                                            user,
                                           );
                                         },
-                                      );
-                                    },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () {
+                                          // Eliminar usuario (tu código original)
+                                          showDialog(
+                                            context: context,
+                                            builder: (
+                                              BuildContext dialogContext,
+                                            ) {
+                                              return AlertDialog(
+                                                title: const Text(
+                                                  'Eliminar usuario',
+                                                ),
+                                                content: const Text(
+                                                  '¿Estás seguro de que deseas eliminar este usuario?',
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed:
+                                                        () => Navigator.pop(
+                                                          dialogContext,
+                                                        ),
+                                                    child: const Text(
+                                                      'Cancelar',
+                                                    ),
+                                                  ),
+                                                  ElevatedButton(
+                                                    style:
+                                                        ElevatedButton.styleFrom(
+                                                          backgroundColor:
+                                                              Colors.red,
+                                                        ),
+                                                    onPressed: () async {
+                                                      final tipoRef =
+                                                          user['tipo_ref']
+                                                              as DocumentReference;
+                                                      await eliminarUsuario(
+                                                        user.id,
+                                                        tipoRef,
+                                                      );
+                                                      Navigator.pop(
+                                                        dialogContext,
+                                                      );
+                                                      ScaffoldMessenger.of(
+                                                        context,
+                                                      ).showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text(
+                                                            'Usuario eliminado con éxito',
+                                                          ),
+                                                          backgroundColor:
+                                                              Colors.green,
+                                                          duration: Duration(
+                                                            seconds: 2,
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: const Text(
+                                                      'Eliminar',
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -172,6 +346,14 @@ class GestionarUsuariosPage extends StatelessWidget {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(context, '/agregar_usuario');
+        },
+        backgroundColor: Colors.green,
+        child: const Icon(Icons.person_add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

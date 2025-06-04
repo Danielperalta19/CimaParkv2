@@ -15,6 +15,7 @@ class _PerfilPageState extends State<PerfilPage> {
   String matricula = '';
   String vehiculo = '';
   String password = '';
+  String uid = '';
 
   @override
   void initState() {
@@ -25,53 +26,59 @@ class _PerfilPageState extends State<PerfilPage> {
   Future<void> _cargarDatosUsuario() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final usuarioDoc =
-            await FirebaseFirestore.instance
-                .collection('usuarios')
-                .doc(user.uid)
-                .get();
+      if (user == null) return;
+      uid = user.uid;
 
-        final usuarioData = usuarioDoc.data();
-        if (usuarioData != null) {
-          correo = usuarioData['correo'] ?? '';
-          password = usuarioData['password'] ?? '';
-          final refAlumno = usuarioData['tipo_ref'] as DocumentReference;
+      final usuarioDoc =
+          await FirebaseFirestore.instance
+              .collection('usuarios')
+              .doc(user.uid)
+              .get();
 
-          final alumnoDoc = await refAlumno.get();
-          final alumnoData = alumnoDoc.data() as Map<String, dynamic>?;
+      final usuarioData = usuarioDoc.data();
+      if (usuarioData == null) return;
 
-          if (alumnoData != null) {
-            nombre = alumnoData['nombre'] ?? '';
-            matricula = alumnoData['matricula'] ?? '';
+      final correoNuevo = usuarioData['correo'] ?? '';
+      final passwordNuevo = usuarioData['password'] ?? '';
+      final refAlumno = usuarioData['tipo_ref'] as DocumentReference?;
 
-            // ✅ Leer la referencia al vehículo desde el alumno
-            if (alumnoData.containsKey('vehiculo_ref')) {
-              final vehiculoRef =
-                  alumnoData['vehiculo_ref'] as DocumentReference;
-              final vehiculoDoc = await vehiculoRef.get();
-              final vehiculoData = vehiculoDoc.data() as Map<String, dynamic>?;
+      if (refAlumno == null) return;
 
-              if (vehiculoData != null) {
-                // Puedes concatenar marca + modelo o mostrar solo placas, etc.
-                vehiculo =
-                    '${vehiculoData['marca']} ${vehiculoData['modelo']} - ${vehiculoData['placas']}';
+      final alumnoDoc = await refAlumno.get();
+      final alumnoData = alumnoDoc.data() as Map<String, dynamic>?;
 
-                print('Vehículo recuperado: $vehiculo');
-              }
-            }
+      if (alumnoData == null) return;
+
+      final nombreNuevo = alumnoData['nombre'] ?? '';
+      final matriculaNueva = alumnoData['matricula'] ?? '';
+
+      String vehiculoNuevo = '';
+      if (alumnoData.containsKey('vehiculo_ref')) {
+        final vehiculoRef = alumnoData['vehiculo_ref'] as DocumentReference?;
+        if (vehiculoRef != null) {
+          final vehiculoDoc = await vehiculoRef.get();
+          final vehiculoData = vehiculoDoc.data() as Map<String, dynamic>?;
+          if (vehiculoData != null) {
+            vehiculoNuevo =
+                '${vehiculoData['marca']} ${vehiculoData['modelo']} - ${vehiculoData['placas']}';
           }
-
-          // Mostrar alerta si no hay vehículo registrado
-          if (vehiculo.trim().isEmpty) {
-            Future.delayed(Duration.zero, _mostrarAlertaVehiculo);
-          }
-
-          setState(() {});
         }
       }
-    } catch (e) {
-      print('Error al cargar datos del usuario: $e');
+
+      setState(() {
+        correo = correoNuevo;
+        password = passwordNuevo;
+        nombre = nombreNuevo;
+        matricula = matriculaNueva;
+        vehiculo = vehiculoNuevo;
+      });
+
+      if (vehiculo.trim().isEmpty) {
+        Future.delayed(Duration.zero, _mostrarAlertaVehiculo);
+      }
+    } catch (e, stacktrace) {
+      print('🚨 Error al cargar datos del usuario: $e');
+      print(stacktrace);
     }
   }
 
@@ -80,13 +87,9 @@ class _PerfilPageState extends State<PerfilPage> {
       context: context,
       builder:
           (context) => AlertDialog(
-            backgroundColor: Colors.red.withOpacity(
-              0.8,
-            ), // 🔴 Rojo semi-transparente
+            backgroundColor: Colors.red.withOpacity(0.8),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(
-                16,
-              ), // Esquinas redondeadas (opcional)
+              borderRadius: BorderRadius.circular(16),
             ),
             title: const Text(
               'Vehículo no registrado',
@@ -98,9 +101,7 @@ class _PerfilPageState extends State<PerfilPage> {
             ),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
+                onPressed: () => Navigator.pop(context),
                 child: const Text(
                   'Aceptar',
                   style: TextStyle(color: Colors.white),
@@ -108,6 +109,62 @@ class _PerfilPageState extends State<PerfilPage> {
               ),
             ],
           ),
+    );
+  }
+
+  Future<void> _editarCampo(String campo, String valorActual) async {
+    final controller = TextEditingController(text: valorActual);
+    final nuevoValor = await showDialog<String>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Editar $campo'),
+            content: TextField(
+              controller: controller,
+              decoration: InputDecoration(labelText: 'Nuevo $campo'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, controller.text),
+                child: const Text('Guardar'),
+              ),
+            ],
+          ),
+    );
+
+    if (nuevoValor == null || nuevoValor.trim().isEmpty) return;
+
+    final usuarios = FirebaseFirestore.instance.collection('usuarios').doc(uid);
+    final usuarioDoc = await usuarios.get();
+    final tipoRef = usuarioDoc.data()?['tipo_ref'] as DocumentReference?;
+
+    if (tipoRef == null) return;
+
+    switch (campo) {
+      case 'Nombre completo':
+        await tipoRef.update({'nombre': nuevoValor});
+        setState(() => nombre = nuevoValor);
+        break;
+      case 'Correo':
+        await usuarios.update({'correo': nuevoValor});
+        setState(() => correo = nuevoValor);
+        break;
+      case 'Contraseña':
+        await usuarios.update({'password': nuevoValor});
+        setState(() => password = nuevoValor);
+        break;
+      case 'Matrícula':
+        await tipoRef.update({'matricula': nuevoValor});
+        setState(() => matricula = nuevoValor);
+        break;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Campo actualizado correctamente')),
     );
   }
 
@@ -126,7 +183,7 @@ class _PerfilPageState extends State<PerfilPage> {
             ),
           ),
 
-          // Logo arriba a la izquierda
+          // Logo
           Positioned(
             top: 20,
             left: 20,
@@ -138,9 +195,8 @@ class _PerfilPageState extends State<PerfilPage> {
             child: Center(
               child: SingleChildScrollView(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 20), // Separación del logo
+                    const SizedBox(height: 20),
                     const Text(
                       'Mi Perfil',
                       style: TextStyle(
@@ -151,13 +207,11 @@ class _PerfilPageState extends State<PerfilPage> {
                     ),
                     const SizedBox(height: 20),
 
-                    _buildField('Nombre completo', nombre),
-                    _buildField('Correo', correo),
-                    _buildField('Contraseña', '********'),
-                    _buildField('Matrícula', matricula),
+                    _buildField('Nombre completo', nombre, editable: true),
+                    _buildField('Correo', correo, editable: true),
+                    _buildField('Contraseña', '********', editable: true),
+                    _buildField('Matrícula', matricula, editable: true),
                     _buildField('Vehículo', vehiculo),
-
-                    const SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -168,9 +222,9 @@ class _PerfilPageState extends State<PerfilPage> {
     );
   }
 
-  Widget _buildField(String label, String value) {
-    final bool esVehiculo = label == 'Vehículo';
-    final bool mostrarBoton = esVehiculo && value.trim().isEmpty;
+  Widget _buildField(String label, String value, {bool editable = false}) {
+    final esVehiculo = label == 'Vehículo';
+    final mostrarBoton = esVehiculo && value.trim().isEmpty;
 
     return Container(
       width: MediaQuery.of(context).size.width * 0.85,
@@ -183,40 +237,42 @@ class _PerfilPageState extends State<PerfilPage> {
           BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  value.trim().isNotEmpty ? value : 'Sin registrar',
-                  style: const TextStyle(fontSize: 16, color: Colors.black87),
-                ),
-              ),
-              if (mostrarBoton)
-                TextButton(
-                  onPressed: () {
-                    // 🔁 Cambia esta ruta según tu app
-                    Navigator.pushNamed(context, '/vehiculos');
-                  },
-                  child: const Text(
-                    'Registrar',
-                    style: TextStyle(color: Colors.blue),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  value.trim().isNotEmpty ? value : 'Sin registrar',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
           ),
+          if (mostrarBoton)
+            TextButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/vehiculos');
+              },
+              child: const Text(
+                'Registrar',
+                style: TextStyle(color: Colors.blue),
+              ),
+            )
+          else if (editable)
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: () => _editarCampo(label, value),
+            ),
         ],
       ),
     );

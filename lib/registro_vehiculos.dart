@@ -50,7 +50,29 @@ class _RegistroVehiculoPageState extends State<RegistroVehiculoPage> {
         throw Exception('El año del vehículo no puede ser mayor al año actual');
       }
 
-      DocumentReference vehiculoRef = await FirebaseFirestore.instance
+      final usuarioDoc =
+          await FirebaseFirestore.instance
+              .collection('usuarios')
+              .doc(user.uid)
+              .get();
+
+      if (!usuarioDoc.exists) {
+        throw Exception('Usuario no encontrado');
+      }
+
+      final alumnoRef = usuarioDoc['tipo_ref'] as DocumentReference;
+      final alumnoDoc = await alumnoRef.get();
+      final alumnoData = alumnoDoc.data() as Map<String, dynamic>?;
+
+      // 🚫 Eliminar vehículo anterior si existe
+      if (alumnoData != null && alumnoData['vehiculo_ref'] != null) {
+        final viejoVehiculoRef =
+            alumnoData['vehiculo_ref'] as DocumentReference;
+        await viejoVehiculoRef.delete();
+      }
+
+      // ✅ Crear nuevo vehículo
+      final nuevoVehiculoRef = await FirebaseFirestore.instance
           .collection('vehiculos')
           .add({
             'marca': _marcaSeleccionada,
@@ -60,19 +82,10 @@ class _RegistroVehiculoPageState extends State<RegistroVehiculoPage> {
             'anio': _anioSeleccionado,
           });
 
-      DocumentSnapshot usuarioDoc =
-          await FirebaseFirestore.instance
-              .collection('usuarios')
-              .doc(user.uid)
-              .get();
+      // 🔁 Actualizar el alumno con la nueva referencia
+      await alumnoRef.update({'vehiculo_ref': nuevoVehiculoRef});
 
-      if (usuarioDoc.exists) {
-        var alumnoRef = usuarioDoc['tipo_ref'];
-        await alumnoRef.update({'vehiculo_ref': vehiculoRef});
-        Navigator.pushReplacementNamed(context, '/estacionamiento');
-      } else {
-        throw Exception('Alumno no encontrado');
-      }
+      Navigator.pushReplacementNamed(context, '/estacionamiento');
     } catch (e) {
       setState(() {
         _error = 'Error: ${e.toString()}';

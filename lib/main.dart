@@ -9,6 +9,7 @@ import 'package:cimaparkv2/login_page.dart';
 import 'package:cimaparkv2/registro_page.dart';
 import 'package:cimaparkv2/registro_vehiculos.dart';
 import 'package:cimaparkv2/perfil_page.dart';
+import 'package:cimaparkv2/registrar_usuarios.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +43,9 @@ class MyApp extends StatelessWidget {
         '/detalle_estacionamiento':
             (context) =>
                 const DetalleEstacionamientoPage(), //Ruta para marcar estacionamiento
-        '/admin': (context) => const AdminHome(), // Ruta para admincl
+        '/admin': (context) => const AdminHome(),
+        '/agregar_usuario':
+            (context) => const AgregarUsuarioPage(), // Ruta para admincl
       },
     );
   }

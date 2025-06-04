@@ -22,37 +22,65 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // Intentar iniciar sesión con Firebase Auth
       UserCredential cred = await FirebaseAuth.instance
           .signInWithEmailAndPassword(
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
           );
 
-      // Verificar si el usuario existe en Firestore
-      QuerySnapshot query =
+      final uid = cred.user!.uid;
+
+      DocumentSnapshot userDoc =
           await FirebaseFirestore.instance
               .collection('usuarios')
-              .where('correo', isEqualTo: _emailController.text.trim())
+              .doc(uid)
               .get();
 
-      if (query.docs.isEmpty) {
+      if (!userDoc.exists) {
         setState(() {
           _error = 'El usuario no está registrado en la base de datos.';
+          _isLoading = false;
         });
         return;
       }
 
-      DocumentSnapshot userDoc = query.docs.first;
-      String tipo = userDoc.get('tipo_usuario');
+      String tipoUsuario = userDoc.get('tipo_usuario');
 
-      if (tipo == 'admin') {
+      if (tipoUsuario == 'alumno') {
+        DocumentReference? alumnoRef = userDoc.get('tipo_ref');
+
+        if (alumnoRef == null) {
+          setState(() {
+            _error = 'No se encontró referencia al alumno.';
+            _isLoading = false;
+          });
+          return;
+        }
+
+        DocumentSnapshot alumnoDoc = await alumnoRef.get();
+
+        if (!alumnoDoc.exists) {
+          setState(() {
+            _error = 'No se encontró información del alumno.';
+            _isLoading = false;
+          });
+          return;
+        }
+
+        var alumnoData = alumnoDoc.data() as Map<String, dynamic>;
+
+        if (alumnoData.containsKey('vehiculo_ref') &&
+            alumnoData['vehiculo_ref'] != null) {
+          Navigator.pushReplacementNamed(context, '/estacionamiento');
+        } else {
+          Navigator.pushReplacementNamed(context, '/perfil');
+        }
+      } else if (tipoUsuario == 'admin') {
         Navigator.pushReplacementNamed(context, '/admin');
-      } else if (tipo == 'alumno') {
-        Navigator.pushReplacementNamed(context, '/estacionamiento');
       } else {
         setState(() {
           _error = 'Tipo de usuario desconocido.';
+          _isLoading = false;
         });
       }
     } on FirebaseAuthException catch (e) {
@@ -70,13 +98,11 @@ class _LoginPageState extends State<LoginPage> {
           default:
             _error = 'Error de autenticación: ${e.message}';
         }
+        _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _error = 'Ocurrió un error: ${e.toString()}';
-      });
-    } finally {
-      setState(() {
         _isLoading = false;
       });
     }
