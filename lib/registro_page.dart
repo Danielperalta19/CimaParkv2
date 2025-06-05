@@ -42,10 +42,24 @@ class _RegistroPageState extends State<RegistroPage> {
         _matriculaController.text.trim().isEmpty) {
       setState(() {
         _isLoading = false;
-        _error = 'Por favor, completa todos los campos';
+        _error = 'Por favor, completa todos los campos obligatorios';
       });
       return;
     }
+
+    // Validar formato de nombres (solo letras y espacios)
+    if (!RegExp(r'^[A-Za-zÀ-ÿ\s]+$').hasMatch(_nombreController.text.trim()) ||
+        !RegExp(r'^[A-Za-zÀ-ÿ\s]+$').hasMatch(_primerApellidoController.text.trim()) ||
+        (_segundoApellidoController.text.trim().isNotEmpty && 
+         !RegExp(r'^[A-Za-zÀ-ÿ\s]+$').hasMatch(_segundoApellidoController.text.trim()))) {
+      setState(() {
+        _isLoading = false;
+        _error = 'Los nombres solo pueden contener letras y espacios';
+      });
+      return;
+    }
+
+    // Validar formato de matrícula (solo números)
     if (!RegExp(r'^\d+$').hasMatch(_matriculaController.text.trim())) {
       setState(() {
         _isLoading = false;
@@ -76,7 +90,6 @@ class _RegistroPageState extends State<RegistroPage> {
           .doc(cred.user!.uid)
           .set({
             'correo': _emailController.text.trim(),
-            'password': _passwordController.text.trim(),
             'tipo_usuario': 'alumno',
             'tipo_ref': alumnoRef,
           });

@@ -2,21 +2,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class AgregarUsuarioPage extends StatefulWidget {
-  const AgregarUsuarioPage({super.key});
+class AgregarUsuariosPage extends StatefulWidget {
+  const AgregarUsuariosPage({super.key});
 
   @override
-  State<AgregarUsuarioPage> createState() => _AgregarUsuarioPageState();
+  State<AgregarUsuariosPage> createState() => _RegistroAlumnoDesdeAdminState();
 }
 
-class _AgregarUsuarioPageState extends State<AgregarUsuarioPage> {
+class _RegistroAlumnoDesdeAdminState extends State<AgregarUsuariosPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nombreController = TextEditingController();
   final _primerApellidoController = TextEditingController();
   final _segundoApellidoController = TextEditingController();
   final _matriculaController = TextEditingController();
-
   bool _isLoading = false;
   String _error = '';
 
@@ -57,14 +56,12 @@ class _AgregarUsuarioPageState extends State<AgregarUsuarioPage> {
     }
 
     try {
-      // Crear usuario en Firebase Auth
       UserCredential cred = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
           );
 
-      // Crear documento en la colección 'alumnos'
       DocumentReference alumnoRef = await FirebaseFirestore.instance
           .collection('alumnos')
           .add({
@@ -75,38 +72,48 @@ class _AgregarUsuarioPageState extends State<AgregarUsuarioPage> {
             'vehiculo_ref': null,
           });
 
-      // Crear documento en la colección 'usuarios'
       await FirebaseFirestore.instance
           .collection('usuarios')
           .doc(cred.user!.uid)
           .set({
             'correo': _emailController.text.trim(),
-            'password': _passwordController.text.trim(),
             'tipo_usuario': 'alumno',
             'tipo_ref': alumnoRef,
           });
 
-      if (mounted) {
-        await showDialog(
-          context: context,
-          builder:
-              (context) => AlertDialog(
-                title: const Text('Éxito'),
-                content: const Text('Alumno registrado correctamente.'),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(
-                        context,
-                      ).pop(); // Regresar a la pantalla anterior
-                    },
-                    child: const Text('Aceptar'),
-                  ),
-                ],
+      await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Alumno registrado',
+              style: TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
               ),
-        );
-      }
+            ),
+            content: const Text(
+              'El alumno fue registrado exitosamente.',
+              style: TextStyle(color: Colors.black87),
+            ),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.green),
+                onPressed: () {
+                  Navigator.of(context).pop(); // Cierra el diálogo
+                  Navigator.of(context).pop(); // Regresa a la pantalla anterior
+                },
+
+                child: const Text('Continuar'),
+              ),
+            ],
+          );
+        },
+      );
     } on FirebaseAuthException catch (e) {
       String mensajeError;
       switch (e.code) {
@@ -117,7 +124,10 @@ class _AgregarUsuarioPageState extends State<AgregarUsuarioPage> {
           mensajeError = 'El correo electrónico no es válido.';
           break;
         case 'weak-password':
-          mensajeError = 'La contraseña es muy débil.';
+          mensajeError = 'La contraseña es demasiado débil.';
+          break;
+        case 'missing-password':
+          mensajeError = 'La contraseña no puede estar vacía.';
           break;
         default:
           mensajeError = 'Error de registro: ${e.message}';
@@ -139,68 +149,103 @@ class _AgregarUsuarioPageState extends State<AgregarUsuarioPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Agregar Alumno'),
-        backgroundColor: Colors.green,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            _buildField('Correo', _emailController),
-            _buildField('Contraseña', _passwordController, isPassword: true),
-            _buildField('Nombre', _nombreController),
-            _buildField('Primer Apellido', _primerApellidoController),
-            _buildField('Segundo Apellido', _segundoApellidoController),
-            _buildField('Matrícula', _matriculaController),
-
-            const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton.icon(
-                  icon: const Icon(Icons.check),
-                  onPressed: _registrarAlumno,
-                  label: const Text('Registrar Alumno'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 16,
+      body: Stack(
+        children: [
+          Image.asset(
+            'assets/fondo.jpeg',
+            fit: BoxFit.cover,
+            height: double.infinity,
+            width: double.infinity,
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset('assets/logo.png', height: 200),
+                    const SizedBox(height: 20),
+                    _buildLabeledTextField('Correo', _emailController),
+                    _buildLabeledTextField(
+                      'Contraseña',
+                      _passwordController,
+                      isPassword: true,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                    _buildLabeledTextField('Nombre', _nombreController),
+                    _buildLabeledTextField(
+                      'Primer Apellido',
+                      _primerApellidoController,
                     ),
-                  ),
+                    _buildLabeledTextField(
+                      'Segundo Apellido',
+                      _segundoApellidoController,
+                    ),
+                    _buildLabeledTextField('Matrícula', _matriculaController),
+                    const SizedBox(height: 30),
+                    _isLoading
+                        ? const CircularProgressIndicator()
+                        : ElevatedButton(
+                          onPressed: _registrarAlumno,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 100,
+                              vertical: 20,
+                            ),
+                          ),
+                          child: const Text(
+                            'Registrar alumno',
+                            style: TextStyle(fontSize: 22),
+                          ),
+                        ),
+                    if (_error.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Text(
+                          _error,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-            if (_error.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(_error, style: const TextStyle(color: Colors.red)),
               ),
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildField(
+  Widget _buildLabeledTextField(
     String label,
     TextEditingController controller, {
     bool isPassword = false,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: TextField(
-        controller: controller,
-        obscureText: isPassword,
-        decoration: InputDecoration(
-          labelText: label,
-          filled: true,
-          fillColor: Colors.grey[200],
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 18)),
+        const SizedBox(height: 5),
+        TextField(
+          controller: controller,
+          obscureText: isPassword,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.9),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         ),
-      ),
+        const SizedBox(height: 15),
+      ],
     );
   }
 }

@@ -1,12 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cimaparkv2/widgets/nombre_usuario_widget.dart';
 import 'package:cimaparkv2/perfil_page.dart';
+import 'package:cimaparkv2/notificaciones_page.dart';
 
-class MapaEstacionamientosPage extends StatelessWidget {
+class MapaEstacionamientosPage extends StatefulWidget {
   const MapaEstacionamientosPage({super.key});
 
-  // Función que determina el color con base en el porcentaje de lugares
+  @override
+  State<MapaEstacionamientosPage> createState() =>
+      _MapaEstacionamientosPageState();
+}
+
+class _MapaEstacionamientosPageState extends State<MapaEstacionamientosPage> {
+  bool hayNotificaciones = false;
+
+  @override
+  void initState() {
+    super.initState();
+    verificarNotificaciones();
+  }
+
+  Future<void> verificarNotificaciones() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('notificaciones')
+            .orderBy('fecha', descending: true)
+            .get();
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final List<dynamic> vistos = (data.containsKey('vistoPor') && data['vistoPor'] != null)
+        ? List<dynamic>.from(data['vistoPor'])
+        : [];
+      if (!vistos.contains(uid)) {
+        setState(() {
+          hayNotificaciones = true;
+        });
+        return;
+      }
+    }
+
+    setState(() {
+      hayNotificaciones = false;
+    });
+  }
+
+  // Función para definir color según disponibilidad
   Color _colorSegunDisponibilidad(int restantes, int total) {
     if (total == 0) return Colors.grey.withOpacity(0.5);
     double porcentaje = restantes / total;
@@ -32,7 +76,7 @@ class MapaEstacionamientosPage extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Encabezado con logo y nombre de usuario
+            // Encabezado
             Positioned(
               top: 40,
               left: 0,
@@ -52,7 +96,7 @@ class MapaEstacionamientosPage extends StatelessWidget {
               ),
             ),
 
-            // Título y mapa
+            // Cuerpo
             Positioned(
               top: 140,
               left: 0,
@@ -77,6 +121,8 @@ class MapaEstacionamientosPage extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 10),
+
+                  // Mapa
                   Center(
                     child: Container(
                       margin: const EdgeInsets.all(10),
@@ -110,7 +156,6 @@ class MapaEstacionamientosPage extends StatelessWidget {
                                 FirebaseFirestore.instance
                                     .collection('estacionamientos')
                                     .snapshots(),
-
                             builder: (context, snapshot) {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
@@ -197,13 +242,88 @@ class MapaEstacionamientosPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Image.asset('assets/leyenda.png', width: 200),
+
+                  const SizedBox(height: 10),
+
+                  // Leyenda
+                  Flexible(
+                    child: Image.asset(
+                      'assets/leyenda.png',
+                      width: 500,
+                      height: 150,
+                      fit: BoxFit.fill,
+                    ),
                   ),
                 ],
               ),
             ),
+
+            // Botón campanita
+            Positioned(
+              bottom: 20,
+              left: 20,
+              child: StreamBuilder<QuerySnapshot>(
+                stream:
+                    FirebaseFirestore.instance
+                        .collection('notificaciones')
+                        .orderBy('fecha', descending: true)
+                        .snapshots(),
+                builder: (context, snapshot) {
+                  final uid = FirebaseAuth.instance.currentUser?.uid;
+                  bool mostrarAlerta = false;
+
+                  if (snapshot.hasData && uid != null) {
+                    for (final doc in snapshot.data!.docs) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final List<dynamic> vistos = (data.containsKey('vistoPor') && data['vistoPor'] != null)
+                        ? List<dynamic>.from(data['vistoPor'])
+                        : [];
+                      if (!vistos.contains(uid)) {
+                        mostrarAlerta = true;
+                        break;
+                      }
+                    }
+                  }
+
+                  return Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      FloatingActionButton(
+                        heroTag: 'notificaciones',
+                        backgroundColor: Colors.green,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NotificacionesPage(),
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.notifications,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (mostrarAlerta)
+                        Positioned(
+                          right: 4,
+                          top: 4,
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+
+            // Botón de perfil
             Positioned(
               bottom: 20,
               right: 20,

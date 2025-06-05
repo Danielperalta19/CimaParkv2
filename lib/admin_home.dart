@@ -48,6 +48,24 @@ class _AdminHomeState extends State<AdminHome> {
     }
   }
 
+  Future<void> _cerrarSesion() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cerrar sesión: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -148,6 +166,57 @@ class _AdminHomeState extends State<AdminHome> {
                         ],
                       ),
                     ),
+                  ),
+                ),
+
+                // Botón de cerrar sesión en la parte inferior izquierda
+                Positioned(
+                  bottom: 24,
+                  left: 24,
+                  child: FloatingActionButton(
+                    heroTag: 'logout_admin',
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          title: const Text(
+                            'Cerrar sesión',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          content: const Text(
+                            '¿Estás seguro que deseas cerrar sesión?',
+                            style: TextStyle(color: Colors.black87),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancelar'),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _cerrarSesion();
+                              },
+                              child: const Text('Cerrar sesión'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: const Icon(Icons.logout),
                   ),
                 ),
               ],

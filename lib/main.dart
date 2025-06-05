@@ -1,5 +1,6 @@
 import 'package:cimaparkv2/firebase_options.dart';
 import 'package:cimaparkv2/home.dart';
+import 'package:cimaparkv2/notificaciones_page.dart';
 import 'package:cimaparkv2/seleccion_estacionamiento.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -37,15 +38,16 @@ class MyApp extends StatelessWidget {
         '/vehiculos':
             (context) =>
                 const RegistroVehiculoPage(), // Ruta para Registro vehiculo
-        '/estacionamiento':
+        '/estacionamiento': (context) => const MapaEstacionamientosPage(),
+        '/notificaciones':
             (context) =>
-                const MapaEstacionamientosPage(), // Ruta para Estacionamientos
+                const NotificacionesPage(), // Ruta para Estacionamientos
         '/detalle_estacionamiento':
             (context) =>
                 const DetalleEstacionamientoPage(), //Ruta para marcar estacionamiento
         '/admin': (context) => const AdminHome(),
         '/agregar_usuario':
-            (context) => const AgregarUsuarioPage(), // Ruta para admincl
+            (context) => const AgregarUsuariosPage(), // Ruta para admincl
       },
     );
   }

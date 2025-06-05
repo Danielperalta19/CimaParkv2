@@ -59,6 +59,13 @@ flutter:
     - assets/mapa.png
     - assets/fondo.jpeg
     - assets/logo.png
+    - assets/leyenda.png
+    - assets/zoom_A.png
+    - assets/zoom_B.png
+    - assets/zoom_C.png
+    - assets/zoom_D.png
+    
+
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

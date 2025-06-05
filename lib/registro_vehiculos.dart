@@ -39,6 +39,20 @@ class _RegistroVehiculoPageState extends State<RegistroVehiculoPage> {
     });
 
     try {
+      // Validar que todos los campos estén llenos
+      if (_marcaSeleccionada == null ||
+          _modeloSeleccionado == null ||
+          _colorSeleccionado == null ||
+          _anioSeleccionado == null ||
+          _matriculaController.text.trim().isEmpty) {
+        throw Exception('Por favor, completa todos los campos');
+      }
+
+      // Validar formato de placas (solo letras y números)
+      if (!RegExp(r'^[A-Za-z0-9]+$').hasMatch(_matriculaController.text.trim())) {
+        throw Exception('Las placas solo pueden contener letras y números');
+      }
+
       User? user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('Usuario no autenticado');
 
@@ -46,7 +60,7 @@ class _RegistroVehiculoPageState extends State<RegistroVehiculoPage> {
       final anioActual = ahora.year;
 
       // Verificar si el año seleccionado es válido
-      if (_anioSeleccionado == null || _anioSeleccionado! > anioActual) {
+      if (_anioSeleccionado! > anioActual) {
         throw Exception('El año del vehículo no puede ser mayor al año actual');
       }
 

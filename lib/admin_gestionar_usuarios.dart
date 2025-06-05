@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'widgets/boton_regresar_widget.dart';
 
 class GestionarUsuariosPage extends StatelessWidget {
   const GestionarUsuariosPage({super.key});
@@ -38,14 +39,9 @@ class GestionarUsuariosPage extends StatelessWidget {
     BuildContext context,
     DocumentSnapshot user,
   ) async {
-    final correoController = TextEditingController(text: user['correo']);
-    final passwordController = TextEditingController(
-      text: user['password'] ?? '',
-    );
     String tipoUsuario = user['tipo_usuario'];
     final tipoRef = user['tipo_ref'] as DocumentReference;
 
-    // Obtenemos los datos del documento referenciado (admin o alumno)
     final tipoSnapshot = await tipoRef.get();
     final data = tipoSnapshot.data() as Map<String, dynamic>? ?? {};
 
@@ -62,102 +58,172 @@ class GestionarUsuariosPage extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Editar Usuario'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text("Datos del usuario"),
-                TextField(
-                  controller: correoController,
-                  decoration: const InputDecoration(labelText: 'Correo'),
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Editar datos personales', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nombreController,
+                decoration: InputDecoration(
+                  labelText: 'Nombre',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.grey[100],
                 ),
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Contraseña'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: apellido1Controller,
+                decoration: InputDecoration(
+                  labelText: 'Primer Apellido',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.grey[100],
                 ),
-                DropdownButtonFormField<String>(
-                  value: tipoUsuario,
-                  items: const [
-                    DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                    DropdownMenuItem(value: 'alumno', child: Text('Alumno')),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      tipoUsuario = value;
-                    }
-                  },
-                  decoration: const InputDecoration(
-                    labelText: 'Tipo de usuario',
-                  ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: apellido2Controller,
+                decoration: InputDecoration(
+                  labelText: 'Segundo Apellido',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.grey[100],
                 ),
-                const SizedBox(height: 16),
-                const Text("Datos personales"),
-                TextField(
-                  controller: nombreController,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: matriculaController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Matrícula',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.grey[100],
                 ),
-                TextField(
-                  controller: apellido1Controller,
-                  decoration: const InputDecoration(
-                    labelText: 'Primer Apellido',
-                  ),
-                ),
-                TextField(
-                  controller: apellido2Controller,
-                  decoration: const InputDecoration(
-                    labelText: 'Segundo Apellido',
-                  ),
-                ),
-                TextField(
-                  controller: matriculaController,
-                  decoration: const InputDecoration(labelText: 'Matrícula'),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            ElevatedButton(
-              onPressed: () async {
-                // Actualizar documento en la colección usuarios
-                await FirebaseFirestore.instance
-                    .collection('usuarios')
-                    .doc(user.id)
-                    .update({
-                      'correo': correoController.text.trim(),
-                      'password': passwordController.text.trim(),
-                      'tipo_usuario': tipoUsuario,
-                    });
-
-                // Actualizar documento referenciado (admin o alumno)
-                await tipoRef.update({
-                  'nombre': nombreController.text.trim(),
-                  'primer_apellido': apellido1Controller.text.trim(),
-                  'segundo_apellido': apellido2Controller.text.trim(),
-                  'matricula': matriculaController.text.trim(),
-                });
-
+            onPressed: () async {
+              // Validaciones
+              if (nombreController.text.trim().isEmpty ||
+                  apellido1Controller.text.trim().isEmpty ||
+                  matriculaController.text.trim().isEmpty) {
                 Navigator.pop(context);
-
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Usuario actualizado con éxito'),
-                    backgroundColor: Colors.green,
+                    content: Center(
+                      heightFactor: 1,
+                      child: Text(
+                        'Por favor, completa todos los campos obligatorios',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+                    margin: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    duration: Duration(seconds: 2),
+                    elevation: 8,
                   ),
                 );
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
-        );
-      },
+                return;
+              }
+              if (!RegExp(r'^[A-Za-zÀ-ÿ\s]+$').hasMatch(nombreController.text.trim()) ||
+                  !RegExp(r'^[A-Za-zÀ-ÿ\s]+$').hasMatch(apellido1Controller.text.trim()) ||
+                  (apellido2Controller.text.trim().isNotEmpty &&
+                   !RegExp(r'^[A-Za-zÀ-ÿ\s]+$').hasMatch(apellido2Controller.text.trim()))) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Center(
+                      heightFactor: 1,
+                      child: Text(
+                        'Los nombres solo pueden contener letras y espacios',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+                    margin: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    duration: Duration(seconds: 2),
+                    elevation: 8,
+                  ),
+                );
+                return;
+              }
+              if (!RegExp(r'^\d+$').hasMatch(matriculaController.text.trim())) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Center(
+                      heightFactor: 1,
+                      child: Text(
+                        'La matrícula debe contener solo números',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+                    margin: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    duration: Duration(seconds: 2),
+                    elevation: 8,
+                  ),
+                );
+                return;
+              }
+              await tipoRef.update({
+                'nombre': nombreController.text.trim(),
+                'primer_apellido': apellido1Controller.text.trim(),
+                'segundo_apellido': apellido2Controller.text.trim(),
+                'matricula': matriculaController.text.trim(),
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Center(
+                    heightFactor: 1,
+                    child: Text(
+                      'Usuario actualizado con éxito',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+                  margin: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  duration: Duration(seconds: 2),
+                  elevation: 8,
+                ),
+              );
+            },
+            child: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -166,7 +232,6 @@ class GestionarUsuariosPage extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // Fondo
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -176,184 +241,198 @@ class GestionarUsuariosPage extends StatelessWidget {
             ),
           ),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Logo
-                  Image.asset('assets/logo.png', width: 200),
-
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Gestionar Usuarios',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: StreamBuilder<QuerySnapshot>(
-                      stream:
-                          FirebaseFirestore.instance
-                              .collection('usuarios')
-                              .snapshots(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-
-                        final docs = snapshot.data!.docs;
-
-                        return ListView.builder(
-                          itemCount: docs.length,
-                          itemBuilder: (context, index) {
-                            final user = docs[index];
-                            final uid = user.id;
-                            final correo = user['correo'] ?? '';
-                            final tipo = user['tipo_usuario'] ?? '';
-
-                            return Container(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.8),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          correo,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Tipo: $tipo',
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Row(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.edit,
-                                          color: Colors.blue,
-                                        ),
-                                        onPressed: () {
-                                          _mostrarDialogoEditarUsuario(
-                                            context,
-                                            user,
-                                          );
-                                        },
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.delete,
-                                          color: Colors.red,
-                                        ),
-                                        onPressed: () {
-                                          // Eliminar usuario (tu código original)
-                                          showDialog(
-                                            context: context,
-                                            builder: (
-                                              BuildContext dialogContext,
-                                            ) {
-                                              return AlertDialog(
-                                                title: const Text(
-                                                  'Eliminar usuario',
-                                                ),
-                                                content: const Text(
-                                                  '¿Estás seguro de que deseas eliminar este usuario?',
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed:
-                                                        () => Navigator.pop(
-                                                          dialogContext,
-                                                        ),
-                                                    child: const Text(
-                                                      'Cancelar',
-                                                    ),
-                                                  ),
-                                                  ElevatedButton(
-                                                    style:
-                                                        ElevatedButton.styleFrom(
-                                                          backgroundColor:
-                                                              Colors.red,
-                                                        ),
-                                                    onPressed: () async {
-                                                      final tipoRef =
-                                                          user['tipo_ref']
-                                                              as DocumentReference;
-                                                      await eliminarUsuario(
-                                                        user.id,
-                                                        tipoRef,
-                                                      );
-                                                      Navigator.pop(
-                                                        dialogContext,
-                                                      );
-                                                      ScaffoldMessenger.of(
-                                                        context,
-                                                      ).showSnackBar(
-                                                        const SnackBar(
-                                                          content: Text(
-                                                            'Usuario eliminado con éxito',
-                                                          ),
-                                                          backgroundColor:
-                                                              Colors.green,
-                                                          duration: Duration(
-                                                            seconds: 2,
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                    child: const Text(
-                                                      'Eliminar',
-                                                    ),
-                                                  ),
-                                                ],
-                                              );
-                                            },
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        );
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+                // Logo centrado en la parte superior
+                Center(child: Image.asset('assets/logo.png', height: 80)),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 24, bottom: 8),
+                    child: FloatingActionButton(
+                      heroTag: 'fab_usuario',
+                      mini: true,
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/agregar_usuario');
                       },
+                      child: const Icon(Icons.add),
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream:
+                        FirebaseFirestore.instance
+                            .collection('usuarios')
+                            .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+
+                      final docs = snapshot.data!.docs;
+
+                      return ListView.builder(
+                        itemCount: docs.length,
+                        itemBuilder: (context, index) {
+                          final user = docs[index];
+                          final uid = user.id;
+                          final correo = user['correo'] ?? '';
+                          final tipoRef = user['tipo_ref'] as DocumentReference;
+
+                          return FutureBuilder<DocumentSnapshot>(
+                            future: tipoRef.get(),
+                            builder: (context, tipoSnapshot) {
+                              String matricula = '';
+                              if (tipoSnapshot.hasData && tipoSnapshot.data != null) {
+                                final tipoData = tipoSnapshot.data!.data() as Map<String, dynamic>?;
+                                matricula = tipoData?['matricula'] ?? '';
+                              }
+                              return Container(
+                                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.8),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            correo,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Matrícula: $matricula',
+                                            style: const TextStyle(fontSize: 14),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, color: Colors.blue),
+                                      onPressed: () {
+                                        _mostrarDialogoEditarUsuario(
+                                          context,
+                                          user,
+                                        );
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                      onPressed: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            backgroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            title: const Text(
+                                              'Eliminar usuario',
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            content: const Text(
+                                              '¿Estás seguro que deseas eliminar este usuario?',
+                                              style: TextStyle(color: Colors.black87),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context, false),
+                                                child: const Text('Cancelar'),
+                                              ),
+                                              ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.red,
+                                                  foregroundColor: Colors.white,
+                                                ),
+                                                onPressed: () => Navigator.pop(context, true),
+                                                child: const Text('Eliminar'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          try {
+                                            await eliminarUsuario(uid, tipoRef);
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Center(
+                                                  heightFactor: 1,
+                                                  child: Text(
+                                                    'Usuario eliminado con éxito',
+                                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ),
+                                                backgroundColor: Colors.green,
+                                                behavior: SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+                                                margin: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                                duration: Duration(seconds: 2),
+                                                elevation: 8,
+                                              ),
+                                            );
+                                          } catch (e) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Center(
+                                                  heightFactor: 1,
+                                                  child: Text(
+                                                    'Error al eliminar usuario',
+                                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ),
+                                                backgroundColor: Colors.red,
+                                                behavior: SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+                                                margin: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                                duration: Duration(seconds: 2),
+                                                elevation: 8,
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
+          ),
+          // Botón de regresar
+          const Positioned(
+            top: 40,
+            left: 20,
+            child: BotonRegresar(),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/agregar_usuario');
-        },
-        backgroundColor: Colors.green,
-        child: const Icon(Icons.person_add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
